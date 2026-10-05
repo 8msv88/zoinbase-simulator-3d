@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zoinbase Simulator 3D</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;font-family:'Courier New',Courier,monospace;color:#e0e4ef}
+  #c{display:block;width:100%;height:100%;position:fixed;inset:0;z-index:0}
+  .overlay{position:fixed;z-index:10;pointer-events:none}
+  .panel{background:rgba(12,14,22,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(79,140,255,.25);border-radius:8px;padding:10px 14px}
+  .accent{color:#4f8cff}
+  .good{color:#3ddc84}
+  .bad{color:#ff4d5e}
+  .warn{color:#ffb020}
+  .dim{color:#6a7080;font-style:italic}
+  #hud{top:16px;left:16px;display:flex;gap:10px;flex-wrap:wrap}
+  .stat{min-width:110px}
+  .stat-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6a7080;margin-bottom:4px}
+  .stat-val{font-size:18px;font-weight:700;color:#e0e4ef}
+  .bar-track{height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:6px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:2px;transition:width .4s ease}
+  .bar-heat{background:linear-gradient(90deg,#ff4d5e,#ff8a5c)}
+  .bar-susp{background:linear-gradient(90deg,#ffb020,#ffd060)}
+  #dossier{top:16px;right:16px;width:260px;transform:translateX(120%);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+  #dossier.show{transform:translateX(0)}
+  #dossier .name{font-size:15px;font-weight:700;margin-bottom:2px}
+  #dossier .meta{font-size:11px;color:#8a90a0;margin-bottom:8px}
+  #dossier .row{display:flex;justify-content:space-between;font-size:12px;margin:3px 0}
+  #dossier .vuln-track{height:5px;background:rgba(255,255,255,.08);border-radius:3px;margin-top:8px;overflow:hidden}
+  #dossier .vuln-fill{height:100%;background:linear-gradient(90deg,#4f8cff,#3ddc84);border-radius:3px;transition:width .4s ease}
+  #log{bottom:16px;left:16px;width:340px;max-height:220px;overflow-y:auto;font-size:12px;line-height:1.55;scrollbar-width:thin;scrollbar-color:#4f8cff33 transparent}
+  #log::-webkit-scrollbar{width:4px}
+  #log::-webkit-scrollbar-thumb{background:#4f8cff44;border-radius:2px}
+  .log-line{opacity:0;animation:fadeIn .35s forwards;margin-bottom:3px;word-break:break-word}
+  @keyframes fadeIn{to{opacity:1}}
+  #choices{bottom:16px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;width:min(480px,90vw);pointer-events:auto}
+  .choice-btn{background:rgba(12,14,22,.85);backdrop-filter:blur(10px);border:1px solid rgba(79,140,255,.3);border-radius:8px;padding:12px 16px;cursor:pointer;text-align:left;transition:border-color .2s,background .2s;pointer-events:auto;color:#e0e4ef;font-family:inherit}
+  .choice-btn:hover{border-color:#4f8cff;background:rgba(79,140,255,.12)}
+  .choice-btn .lbl{font-size:13px;font-weight:600;display:block}
+  .choice-btn .tag{font-size:11px;color:#6a7080;margin-top:3px;display:block}
+  .modal-bg{position:fixed;inset:0;z-index:100;background:rgba(5,6,12,.82);display:flex;align-items:center;justify-content:center;pointer-events:auto}
+  .modal{background:rgba(14,16,26,.95);border:1px solid rgba(79,140,255,.35);border-radius:14px;padding:36px 40px;max-width:480px;width:90%;text-align:center;backdrop-filter:blur(20px)}
+  .modal h1{font-size:28px;letter-spacing:2px;margin-bottom:6px;color:#4f8cff}
+  .modal .tagline{font-size:13px;color:#8a90a0;margin-bottom:20px}
+  .modal .body{font-size:13px;line-height:1.65;color:#b0b6c4;margin-bottom:24px;text-align:left}
+  .modal .disclaimer{font-size:11px;color:#5a6070;margin-top:16px;font-style:italic}
+  .btn-primary{background:#4f8cff;color:#0a0a12;border:none;border-radius:8px;padding:12px 32px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:1px;transition:background .2s}
+  .btn-primary:hover{background:#6ba3ff}
+  .btn-secondary{background:transparent;color:#8a90a0;border:1px solid rgba(138,144,160,.3);border-radius:8px;padding:10px 24px;font-size:13px;cursor:pointer;font-family:inherit;margin-left:10px;transition:border-color .2s}
+  .btn-secondary:hover{border-color:#8a90a0}
+  .end-icon{font-size:48px;margin-bottom:8px}
+  .end-label{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#6a7080;margin-bottom:4px}
+  .end-title{font-size:26px;font-weight:700;margin-bottom:12px}
+  .end-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0;text-align:left}
+  .end-stat{background:rgba(255,255,255,.04);border-radius:6px;padding:10px 12px}
+  .end-stat .el{font-size:10px;color:#6a7080;text-transform:uppercase;letter-spacing:1px}
+  .end-stat .ev{font-size:16px;font-weight:700;margin-top:2px}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" class="overlay hidden">
+  <div class="panel stat"><div class="stat-label">Balance</div><div class="stat-val accent" id="s-bal">$0</div></div>
+  <div class="panel stat"><div class="stat-label">Marks</div><div class="stat-val" id="s-marks">0</div></div>
+  <div class="panel stat"><div class="stat-label">Heat</div><div class="stat-val bad" id="s-heat">0</div><div class="bar-track"><div class="bar-fill bar-heat" id="bar-heat" style="width:0%"></div></div></div>
+  <div class="panel stat"><div class="stat-label">Suspicion</div><div class="stat-val warn" id="s-susp">0</div><div class="bar-track"><div class="bar-fill bar-susp" id="bar-susp" style="width:0%"></div></div></div>
+</div>
+
+<div id="dossier" class="overlay panel">
+  <div class="name" id="d-name">—</div>
+  <div class="meta" id="d-meta">—</div>
+  <div class="row"><span class="dim">Account</span><span id="d-acct">•••• —</span></div>
+  <div class="row"><span class="dim">Balance on file</span><span class="good" id="d-bal">$0</span></div>
+  <div class="row"><span class="dim">Susceptibility</span><span id="d-vuln">—</span></div>
+  <div class="vuln-track"><div class="vuln-fill" id="d-vuln-bar" style="width:0%"></div></div>
+</div>
+
+<div id="log" class="overlay panel"></div>
+
+<div id="choices" class="overlay"></div>
+
+<div id="start-modal" class="modal-bg">
+  <div class="modal">
+    <h1>ZOINBASE SIMULATOR</h1>
+    <div class="tagline">Social Engineering Desk — Night Shift</div>
+    <div class="body">
+      You run a fake Coinbase support line from a dark apartment. Cold-call seniors, walk them through "secure recovery," cash out before the heat builds.<br><br>
+      Click the burner phone to dial. Keep suspicion low. Cash out before Heat hits 100.
+    </div>
+    <button class="btn-primary" id="btn-start">START SHIFT</button>
+    <div class="disclaimer">Satire. The real thing ruins lives. Don't.</div>
+  </div>
+</div>
+
+<div id="end-modal" class="modal-bg hidden">
+  <div class="modal">
+    <div class="end-icon" id="e-icon">💰</div>
+    <div class="end-label" id="e-label">Run Complete</div>
+    <div class="end-title" id="e-title">Cashed Out</div>
+    <div class="body" id="e-body" style="text-align:center"></div>
+    <div class="end-stats">
+      <div class="end-stat"><div class="el">Cashed</div><div class="ev accent" id="e-bal">$0</div></div>
+      <div class="end-stat"><div class="el">Marks</div><div class="ev" id="e-marks">0</div></div>
+      <div class="end-stat"><div class="el">Heat</div><div class="ev bad" id="e-heat">0</div></div>
+      <div class="end-stat"><div class="el">Rank</div><div class="ev warn" id="e-rank">—</div></div>
+    </div>
+    <button class="btn-primary" id="btn-again">RUN AGAIN</button>
+    <button class="btn-secondary" id="btn-menu">MENU</button>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const S = {
+  balance: 0, marks: 0, heat: 0, susp: 0,
+  target: null, dead: false, awaitingDial: false,
+  stage: null, pressure: false, payout_mod: 1
+};
+
+const FIRST = [
+  'Harold','Margaret','Dorothy','Robert','Helen','Frank','Betty','Walter',
+  'Evelyn','George','Doris','Arthur','Mildred','Raymond','Gladys','Norman',
+  'Shirley','Kenneth','Irene','Albert'
+];
+const LAST = [
+  'Johnson','Williams','Brown','Miller','Davis','Wilson','Anderson','Taylor',
+  'Thomas','Moore','Jackson','White','Harris','Martin','Thompson','Garcia',
+  'Martinez','Robinson','Clark','Rodriguez'
+];
+const AGES = [52,55,58,61,63,65,67,68,70,72,74,76];
+const CITIES = [
+  'Phoenix, AZ','Tampa, FL','Columbus, OH','Charlotte, NC','Nashville, TN',
+  'Oklahoma City, OK','Tucson, AZ','Fresno, CA','Mesa, AZ','Virginia Beach, VA',
+  'Atlanta, GA','Raleigh, NC'
+];
+const CARRIERS = ['Verizon','AT&T','T-Mobile'];
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x06060a);
+scene.fog = new THREE.Fog(0x06060a, 6, 16);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
+let camTheta = 0.35, camPhi = 1.15, camRadius = 4.2;
+const lookAt = new THREE.Vector3(0, 0.85, 0);
+
+function updateCamera() {
+  const x = lookAt.x + camRadius * Math.sin(camPhi) * Math.sin(camTheta);
+  const y = lookAt.y + camRadius * Math.cos(camPhi);
+  const z = lookAt.z + camRadius * Math.sin(camPhi) * Math.cos(camTheta);
+  camera.position.set(x, y, z);
+  camera.lookAt(lookAt);
+}
+updateCamera();
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── MATERIALS ───
+const matFloor = new THREE.MeshStandardMaterial({ color: 0x1a1e28, roughness: 0.9, metalness: 0.05 });
+const matWall = new THREE.MeshStandardMaterial({ color: 0x12151c, roughness: 0.95, metalness: 0.02 });
+const matRug = new THREE.MeshStandardMaterial({ color: 0x2a1f18, roughness: 0.98 });
+const matWood = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.7, metalness: 0.05 });
+const matBezel = new THREE.MeshStandardMaterial({ color: 0x111114, roughness: 0.4, metalness: 0.6 });
+const matScreen = new THREE.MeshStandardMaterial({ color: 0x1a3a6a, emissive: 0x2a6aff, emissiveIntensity: 0.6, roughness: 0.3 });
+const matKey = new THREE.MeshStandardMaterial({ color: 0x1a1c22, emissive: 0x3a5a9a, emissiveIntensity: 0.15, roughness: 0.5 });
+const matMug = new THREE.MeshStandardMaterial({ color: 0x4a2e1a, roughness: 0.6 });
+const matPhone = new THREE.MeshStandardMaterial({ color: 0x0e0e12, roughness: 0.35, metalness: 0.5 });
+const matPhoneScr = new THREE.MeshStandardMaterial({ color: 0x0a1a0a, emissive: 0x1aff5a, emissiveIntensity: 0.4, roughness: 0.3 });
+const matHalo = new THREE.MeshBasicMaterial({ color: 0x4f8cff, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+const matCeil = new THREE.MeshStandardMaterial({ color: 0x222830, emissive: 0x8899bb, emissiveIntensity: 0.5 });
+
+// ─── ROOM ───
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), matFloor);
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const backWall = new THREE.Mesh(new THREE.PlaneGeometry(12, 6), matWall);
+backWall.position.set(0, 3, -4);
+backWall.receiveShadow = true;
+scene.add(backWall);
+
+const sideWall = new THREE.Mesh(new THREE.PlaneGeometry(8, 6), matWall);
+sideWall.rotation.y = Math.PI / 2;
+sideWall.position.set(-4, 3, 0);
+sideWall.receiveShadow = true;
+scene.add(sideWall);
+
+const rug = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 2.4), matRug);
+rug.rotation.x = -Math.PI / 2;
+rug.position.set(0.2, 0.005, 0.3);
+rug.receiveShadow = true;
+scene.add(rug);
+
+// ─── DESK ───
+const deskGroup = new THREE.Group();
+const deskTop = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.08, 1.1), matWood);
+deskTop.position.y = 0.72;
+deskTop.castShadow = true;
+deskTop.receiveShadow = true;
+deskGroup.add(deskTop);
+const legGeo = new THREE.BoxGeometry(0.07, 0.72, 0.07);
+[[-1.1,0.36,-0.45],[1.1,0.36,-0.45],[-1.1,0.36,0.45],[1.1,0.36,0.45]].forEach(([x,y,z]) => {
+  const leg = new THREE.Mesh(legGeo, matWood);
+  leg.position.set(x, y, z);
+  leg.castShadow = true;
+  deskGroup.add(leg);
+});
+deskGroup.position.set(0, 0, 0.2);
+scene.add(deskGroup);
+
+// ─── MONITOR ───
+const monGroup = new THREE.Group();
+const bezel = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.55, 0.04), matBezel);
+bezel.position.y = 0.45;
+bezel.castShadow = true;
+monGroup.add(bezel);
+const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.46), matScreen);
+screen.position.set(0, 0.45, 0.022);
+monGroup.add(screen);
+const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.25, 12), matBezel);
+stand.position.y = 0.125;
+stand.castShadow = true;
+monGroup.add(stand);
+const base = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 0.03, 24), matBezel);
+base.position.y = 0.015;
+base.castShadow = true;
+monGroup.add(base);
+monGroup.position.set(0, 0.76, -0.15);
+scene.add(monGroup);
+
+// ─── KEYBOARD ───
+const kbGroup = new THREE.Group();
+const kbBase = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.025, 0.2), matBezel);
+kbBase.castShadow = true;
+kbGroup.add(kbBase);
+const keyGeo = new THREE.BoxGeometry(0.035, 0.012, 0.035);
+for (let r = 0; r < 4; r++) {
+  for (let c = 0; c < 12; c++) {
+    const key = new THREE.Mesh(keyGeo, matKey.clone());
+    key.position.set(-0.24 + c * 0.043, 0.018, -0.07 + r * 0.045);
+    kbGroup.add(key);
+  }
+}
+kbGroup.position.set(0, 0.775, 0.25);
+scene.add(kbGroup);
+
+// ─── MUG ───
+const mug = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.1, 16), matMug);
+mug.position.set(0.7, 0.81, 0.15);
+mug.castShadow = true;
+scene.add(mug);
+
+// ─── PHONE + HALO ───
+const phoneGroup = new THREE.Group();
+const phoneBody = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.015, 0.16), matPhone);
+phoneBody.castShadow = true;
+phoneGroup.add(phoneBody);
+const phoneScr = new THREE.Mesh(new THREE.PlaneGeometry(0.07, 0.13), matPhoneScr);
+phoneScr.rotation.x = -Math.PI / 2;
+phoneScr.position.y = 0.009;
+phoneGroup.add(phoneScr);
+phoneGroup.position.set(-0.55, 0.775, 0.2);
+phoneGroup.rotation.y = 0.3;
+scene.add(phoneGroup);
+
+const haloGeo = new THREE.RingGeometry(0.1, 0.16, 32);
+const halo = new THREE.Mesh(haloGeo, matHalo);
+halo.rotation.x = -Math.PI / 2;
+halo.position.set(-0.55, 0.762, 0.2);
+scene.add(halo);
+
+const phoneMeshes = [phoneBody, phoneScr];
+
+// ─── LIGHTS ───
+const ambient = new THREE.AmbientLight(0x1a1e2a, 0.35);
+scene.add(ambient);
+
+const keyLight = new THREE.PointLight(0x6a9fff, 1.4, 10, 1.5);
+keyLight.position.set(0.5, 2.8, 1.5);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
+keyLight.shadow.bias = -0.001;
+scene.add(keyLight);
+
+const rimLight = new THREE.PointLight(0xff8a40, 0.7, 8, 1.5);
+rimLight.position.set(-2.5, 2.2, -2);
+scene.add(rimLight);
+
+const screenGlow = new THREE.PointLight(0x2a6aff, 0.55, 3, 2);
+screenGlow.position.set(0, 1.2, -0.1);
+scene.add(screenGlow);
+
+const ceilStrip = new THREE.Mesh(new THREE.BoxGeometry(3, 0.04, 0.15), matCeil);
+ceilStrip.position.set(0, 3.5, -1.5);
+scene.add(ceilStrip);
+
+// ─── CAMERA CONTROLS ───
+let dragging = false, dragMoved = false;
+let lastX = 0, lastY = 0, downX = 0, downY = 0;
+
+canvas.addEventListener('pointerdown', e => {
+  dragging = true; dragMoved = false;
+  lastX = downX = e.clientX; lastY = downY = e.clientY;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  if (Math.abs(e.clientX - downX) > 4 || Math.abs(e.clientY - downY) > 4) dragMoved = true;
+  camTheta -= dx * 0.005;
+  camPhi = Math.max(0.7, Math.min(1.55, camPhi + dy * 0.005));
+  lastX = e.clientX; lastY = e.clientY;
+  updateCamera();
+});
+canvas.addEventListener('pointerup', e => {
+  if (!dragging) return;
+  dragging = false;
+  canvas.releasePointerCapture(e.pointerId);
+  if (!dragMoved && Math.abs(e.clientX - downX) < 4 && Math.abs(e.clientY - downY) < 4) {
+    onClick(e);
+  }
+});
+canvas.addEventListener('pointercancel', () => { dragging = false; });
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  camRadius = Math.max(2.8, Math.min(7.0, camRadius + e.deltaY * 0.004));
+  updateCamera();
+}, { passive: false });
+
+// ─── RAYCASTER ───
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+function onClick(e) {
+  if (S.dead || !S.awaitingDial) return;
+  const rect = canvas.getBoundingClientRect();
+  pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(phoneMeshes, false);
+  if (hits.length > 0) {
+    pulseHalo();
+    S.awaitingDial = false;
+    nextTarget();
+  }
+}
+
+let haloPulse = 0;
+function pulseHalo() { haloPulse = 1.5; }
+
+// ─── UI HELPERS ───
+const $ = id => document.getElementById(id);
+function fmt$(n) { return '$' + Math.floor(n).toLocaleString(); }
+
+function updateHUD() {
+  $('s-bal').textContent = fmt$(S.balance);
+  $('s-marks').textContent = S.marks;
+  $('s-heat').textContent = Math.floor(S.heat);
+  $('bar-heat').style.width = Math.min(100, S.heat) + '%';
+  $('s-susp').textContent = Math.floor(S.susp);
+  $('bar-susp').style.width = Math.min(100, S.susp) + '%';
+}
+
+function showDossier(t) {
+  $('d-name').textContent = t.name + ', ' + t.age;
+  $('d-meta').textContent = t.city + ' · ' + t.carrier;
+  $('d-acct').textContent = t.acct;
+  $('d-bal').textContent = fmt$(t.balance);
+  $('d-vuln').textContent = t.vuln + '%';
+  $('d-vuln-bar').style.width = t.vuln + '%';
+  $('dossier').classList.add('show');
+}
+function hideDossier() { $('dossier').classList.remove('show'); }
+
+function log(msg, cls) {
+  const el = document.createElement('div');
+  el.className = 'log-line' + (cls ? ' ' + cls : '');
+  el.textContent = msg;
+  const box = $('log');
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+  while (box.children.length > 40) box.removeChild(box.firstChild);
+}
+
+function clearChoices() { $('choices').innerHTML = ''; }
+function showChoices(opts) {
+  clearChoices();
+  opts.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'choice-btn';
+    b.innerHTML = `<span class="lbl">${o.label}</span><span class="tag">${o.tag || ''}</span>`;
+    b.addEventListener('click', () => { clearChoices(); o.fn(); });
+    $('choices').appendChild(b);
+  });
+}
+
+function rand(a, b) { return a + Math.random() * (b - a); }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function genTarget() {
+  const fn = pick(FIRST), ln = pick(LAST);
+  return {
+    name: fn + ' ' + ln,
+    age: pick(AGES),
+    city: pick(CITIES),
+    carrier: pick(CARRIERS),
+    acct: '•••• ' + String(Math.floor(rand(1000, 9999))),
+    balance: Math.floor(rand(4000, 43000)),
+    vuln: Math.floor(rand(35, 89)),
+    payout_mod: 1,
+    pressure: false
+  };
+}
+
+function addHeat(n) {
+  S.heat = Math.min(100, S.heat + n);
+  updateHUD();
+  if (S.heat >= 100) endGame('bust');
+}
+
+function addSusp(n) {
+  S.susp = Math.max(0, Math.min(100, S.susp + n));
+  updateHUD();
+}
+
+// ─── GAME FLOW ───
+function nextTarget() {
+  if (S.dead) return;
+  S.susp = 0;
+  S.pressure = false;
+  S.payout_mod = 1;
+  S.target = genTarget();
+  S.stage = 'open';
+  updateHUD();
+  showDossier(S.target);
+  log('── Dialing ' + S.target.name + ' ──', 'dim');
+  log('Connecting via VoIP relay…', 'dim');
+  setTimeout(() => {
+    log(S.target.name + ': Hello?', 'warn');
+    showOpening();
+  }, 600);
+}
+
+function showOpening() {
+  showChoices([
+    {
+      label: 'This is Coinbase account security. We\'ve detected unusual activity on your account.',
+      tag: 'Standard opener · moderate risk',
+      fn: () => {
+        log('You: This is Coinbase account security. We\'ve detected unusual activity on your account.', 'accent');
+        if (S.target.vuln > 60) addSusp(-5); else addSusp(8);
+        S.payout_mod = 1;
+        setTimeout(targetReaction, 700);
+      }
+    },
+    {
+      label: 'I\'m calling from your bank\'s fraud department.',
+      tag: 'Safer · half payout',
+      fn: () => {
+        log('You: I\'m calling from your bank\'s fraud department.', 'accent');
+        addSusp(4);
+        S.payout_mod = 0.5;
+        setTimeout(targetReaction, 700);
+      }
+    },
+    {
+      label: 'I have your account pulled up — there\'s a withdrawal attempt in progress right now.',
+      tag: 'High pressure · big reward if they bite',
+      fn: () => {
+        log('You: I have your account pulled up — there\'s a withdrawal attempt in progress right now.', 'accent');
+        addSusp(20);
+        S.pressure = true;
+        S.payout_mod = 1;
+        setTimeout(targetReaction, 700);
+      }
+    }
+  ]);
+}
+
+function targetReaction() {
+  if (S.dead) return;
+  if (S.susp >= 100) {
+    log(S.target.name + ': I\'m hanging up and calling Coinbase myself.', 'bad');
+    addHeat(25);
+    hideDossier();
+    if (!S.dead) setTimeout(() => { S.awaitingDial = true; log('Click the phone to dial next mark.', 'dim'); }, 800);
+    return;
+  }
+  if (S.susp > 55) {
+    log(S.target.name + ': How do I know this is really Coinbase? Can you verify?', 'warn');
+    setTimeout(showVerify, 500);
+  } else {
+    log(S.target.name + ': Oh no… what do I need to do?', 'warn');
+    setTimeout(showWalk, 500);
+  }
+}
+
+function showVerify() {
+  showChoices([
+    {
+      label: 'Urgency — "Call the number on the back of your card, but by then the funds may be gone."',
+      tag: 'Reduce suspicion · risk hang-up',
+      fn: () => {
+        log('You: You can call the number on the back of your card, but by then the funds may already be gone.', 'accent');
+        addSusp(-(S.target.vuln / 4));
+        setTimeout(() => {
+          if (S.susp > 45) {
+            log(S.target.name + ': I\'m going to call them myself. Goodbye.', 'bad');
+            addHeat(12);
+            hideDossier();
+            if (!S.dead) setTimeout(() => { S.awaitingDial = true; log('Click the phone to dial next mark.', 'dim'); }, 800);
+          } else {
+            log(S.target.name + ': …Alright, what do I need to do?', 'warn');
+            setTimeout(showWalk, 500);
+          }
+        }, 700);
+      }
+    },
+    {
+      label: 'Fake credential — "Our call center ID is ' + Math.floor(rand(10000, 99999)) + ', you can look us up."',
+      tag: 'Coin flip · +suspicion',
+      fn: () => {
+        const id = Math.floor(rand(10000, 99999));
+        log('You: Our call center ID is ' + id + '. You can look us up on the support portal.', 'accent');
+        addSusp(10);
+        setTimeout(() => {
+          if (Math.random() < S.target.vuln / 100) {
+            log(S.target.name + ': Okay… I see something. What next?', 'warn');
+            setTimeout(showWalk, 500);
+          } else {
+            log(S.target.name + ': That doesn\'t match anything. I\'m hanging up.', 'bad');
+            addHeat(10);
+            hideDossier();
+            if (!S.dead) setTimeout(() => { S.awaitingDial = true; log('Click the phone to dial next mark.', 'dim'); }, 800);
+          }
+        }, 700);
+      }
+    },
+    {
+      label: 'Cold read — "I\'m freezing your account for 48 hours. Branch visit to unfreeze."',
+      tag: 'Panic play · works on higher vuln',
+      fn: () => {
+        log('You: I\'m freezing your account for 48 hours as a precaution. You\'ll need a branch visit to unfreeze.', 'accent');
+        setTimeout(() => {
+          if (S.target.vuln > 45) {
+            addSusp(-15);
+            log(S.target.name + ': Wait—don\'t freeze it! Tell me what to do!', 'warn');
+            setTimeout(showWalk, 500);
+          } else {
+            log(S.target.name + ': Fine. I\'ll go to the branch. Goodbye.', 'bad');
+            addHeat(6);
+            hideDossier();
+            if (!S.dead) setTimeout(() => { S.awaitingDial = true; log('Click the phone to dial next mark.', 'dim'); }, 800);
+          }
+        }, 700);
+      }
+    }
+  ]);
+}
+
+function showWalk() {
+  showChoices([
+    {
+      label: 'Walk them through a secure recovery wallet',
+      tag: 'Biggest payoff · high heat',
+      fn: () => {
+        log('You: I need you to open a secure recovery wallet so we can move your assets to safety.', 'accent');
+        const heatGain = S.pressure ? 20 : 12;
+        addHeat(heatGain);
+        setTimeout(() => {
+          const roll = Math.random() * 100;
+          const thresh = S.target.vuln - S.susp / 3;
+          if (roll < thresh) {
+            successMark(S.target.balance * S.payout_mod);
+          } else if (roll < S.target.vuln + 25) {
+            log(S.target.name + ': Hold on—my son is on the other line. He says this is a scam!', 'bad');
+            addHeat(16);
+            hideDossier();
+            if (!S.dead) setTimeout(() => { S.awaitingDial = true; log('Click the phone to dial next mark.', 'dim'); }, 800);
+          } else {
+            log(S.target.name + ': I\'m calling Coinbase directly right now. Don\'t call again.', 'bad');
+            addHeat(20);
+            hideDossier();
+            if (!S.dead) setTimeout(() => { S.awaitingDial = true; log('Click the phone to dial next mark.', 'dim'); }, 800);
+          }
+        }, 800);
+      }
+    },
+    {
+      label: 'Read me the 12 words so I can verify',
+      tag: 'Seed phrase ask · very high heat',
+      fn: () => {
+        log('You: To verify ownership I need you to read me the 12 recovery words from your wallet.', 'accent');
+        addHeat(18);
+        setTimeout(() => {
+          if (Math.random() < S.target.vuln / 130) {
+            successMark(S.target.balance * S.payout_mod);
+            addHeat(15);
+          } else {
+            log(S.target.name + ': I\'m not reading those to anyone. Goodbye.', 'bad');
+            addHeat(22);
+            hideDossier();
+            if (!S.dead) setTimeout(() => { S.awaitingDial = true; log('Click the phone to dial next mark.', 'dim'); }, 800);
+          }
+        }, 800);
+      }
+    },
+    {
+      label: 'Remote into your computer with AnyDesk',
+      tag: 'Remote access · moderate heat · 70% payout',
+      fn: () => {
+        log('You: I\'m going to send you a remote support link. Install AnyDesk so I can secure the session.', 'accent');
+        addHeat(10);
+        setTimeout(() => {
+          if (Math.random() < S.target.vuln / 110) {
+            successMark(S.target.balance * 0.7);
+            addHeat(8);
+          } else {
+            log(S.target.name + ': My grandson says never install remote software. I\'m done.', 'bad');
+            addHeat(14);
+            hideDossier();
+            if (!S.dead) setTimeout(() => { S.awaitingDial = true; log('Click the phone to dial next mark.', 'dim'); }, 800);
+          }
+        }, 800);
+      }
+    }
+  ]);
+}
+
+function successMark(amt) {
+  const gain = Math.floor(amt);
+  S.balance += gain;
+  S.marks++;
+  updateHUD();
+  log('TRANSFER COMPLETE — +' + fmt$(gain), 'good');
+  log(S.target.name + ' marked. Funds routed through mixer.', 'good');
+  hideDossier();
+  setTimeout(() => {
+    if (S.dead) return;
+    showChoices([
+      {
+        label: 'Cash out now',
+        tag: 'End the run clean',
+        fn: () => endGame('cash')
+      },
+      {
+        label: 'Dial next mark',
+        tag: 'Heat +8 · click phone to dial',
+        fn: () => {
+          addHeat(8);
+          if (!S.dead) {
+            S.awaitingDial = true;
+            log('Click the burner phone to dial the next mark.', 'dim');
+          }
+        }
+      }
+    ]);
+  }, 600);
+}
+
+function endGame(type) {
+  S.dead = true;
+  clearChoices();
+  hideDossier();
+  S.awaitingDial = false;
+  $('hud').classList.add('hidden');
+  $('log').classList.add('hidden');
+
+  if (type === 'bust') {
+    $('e-icon').textContent = '🚨';
+    $('e-label').textContent = 'OPERATION COMPROMISED';
+    $('e-title').textContent = 'BUSTED';
+    $('e-title').style.color = '#ff4d5e';
+    $('e-body').textContent = 'VPS traceback completed. Federal agents have your relay node. The burner phone is still warm.';
+    $('e-rank').textContent = S.balance > 50000 ? 'Federal case' : 'Local PD';
+  } else {
+    const b = S.balance;
+    let rank, icon;
+    if (b >= 250000) { rank = 'Ghost'; icon = '💰'; }
+    else if (b >= 100000) { rank = 'Operator'; icon = '💰'; }
+    else if (b >= 40000) { rank = 'Call Center'; icon = '💵'; }
+    else if (b >= 10000) { rank = 'Runner'; icon = '💵'; }
+    else if (b > 0) { rank = 'Tire Kicker'; icon = '💵'; }
+    else { rank = 'Walked Empty'; icon = '💵'; }
+    $('e-icon').textContent = icon;
+    $('e-label').textContent = 'RUN COMPLETE';
+    $('e-title').textContent = 'CASHED OUT';
+    $('e-title').style.color = '#3ddc84';
+    $('e-body').textContent = 'Mixer confirmed. Wallets wiped. You walk away before the heat catches up.';
+    $('e-rank').textContent = rank;
+  }
+  $('e-bal').textContent = fmt$(S.balance);
+  $('e-marks').textContent = S.marks;
+  $('e-heat').textContent = Math.floor(S.heat);
+  $('end-modal').classList.remove('hidden');
+}
+
+function startGame() {
+  S.balance = 0; S.marks = 0; S.heat = 0; S.susp = 0;
+  S.target = null; S.dead = false; S.awaitingDial = false;
+  S.stage = null; S.pressure = false; S.payout_mod = 1;
+  $('log').innerHTML = '';
+  $('log').classList.remove('hidden');
+  $('hud').classList.remove('hidden');
+  $('start-modal').classList.add('hidden');
+  $('end-modal').classList.add('hidden');
+  updateHUD();
+  hideDossier();
+  clearChoices();
+  log('Shift started. VoIP relay online.', 'dim');
+  log('Click the burner phone on the desk to dial your first mark.', 'dim');
+  S.awaitingDial = true;
+}
+
+$('btn-start').addEventListener('click', startGame);
+$('btn-again').addEventListener('click', startGame);
+$('btn-menu').addEventListener('click', () => {
+  $('end-modal').classList.add('hidden');
+  $('start-modal').classList.remove('hidden');
+  $('hud').classList.add('hidden');
+  $('log').classList.add('hidden');
+  hideDossier();
+  clearChoices();
+});
+
+// ─── ANIMATION LOOP ───
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  keyLight.position.x = 0.5 + Math.sin(t * 0.4) * 0.6;
+
+  matScreen.emissiveIntensity = 0.45 + Math.sin(t * 3.2) * 0.15;
+  matPhoneScr.emissiveIntensity = 0.3 + Math.sin(t * 5.1) * 0.2;
+
+  if (haloPulse > 0) {
+    haloPulse -= 0.04;
+    const p = Math.max(0, haloPulse);
+    const s = 1 + p * 0.8;
+    halo.scale.set(s, s, s);
+    matHalo.opacity = 0.2 + p * 0.6;
+  } else {
+    const breathe = 1 + Math.sin(t * 1.8) * 0.08;
+    halo.scale.set(breathe, breathe, breathe);
+    matHalo.opacity = 0.25 + Math.sin(t * 1.8) * 0.1;
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
