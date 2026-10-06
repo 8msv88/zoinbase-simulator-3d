@@ -1,21 +1,19 @@
 # Zoinbase Simulator 3D
 
-Satirical social-engineering desk game. Single-file HTML + Three.js (r160).
+Satirical social-engineering desk game. Single-file HTML + Three.js.
 
-## Infinite shift
+## Play (recommended)
 
-Heat maxing forces a **cool-down**, not game over. Park cash to bleed heat. Build streaks. Rank up across the session. Scanner events between calls.
+Download **Zoinbase_Simulator_3D.html** from the project artifacts / local copy and open it in a browser. That is the complete game:
 
-## Play
+- Infinite shift (heat crises, not game over)
+- Toolkit (case, SMS, wallet, AnyDesk, mixer)
+- **Conversation popup** (speech bubbles on the 3D desk)
+- Sound effects, ranks, streaks
 
-Open [index.html](index.html) in any modern browser — no build step.
+## GitHub `index.html`
 
-## Controls
-
-- **Drag** — orbit camera
-- **Scroll** — zoom
-- **Click the burner phone** — dial next mark
-- **Toolkit** (during calls) — case file, SMS spoof, wallet gen, AnyDesk sim, mixer
+If the GitHub Pages / raw `index.html` shows a load error, use the local single-file HTML instead. A full single-file push to this repo is size-sensitive in the tooling path.
 
 ## Disclaimer
 
