@@ -1,50 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zoinbase Simulator 3D</title>
-<style>
-body{margin:0;background:#07080d;color:#8a90a0;font-family:Courier New,monospace;display:flex;align-items:center;justify-content:center;height:100vh}
-#boot{text-align:center;font-size:13px;letter-spacing:1px}
-.bar{width:200px;height:4px;background:#1a1e28;margin:16px auto;border-radius:2px;overflow:hidden}
-.bar i{display:block;height:100%;width:0%;background:#4f8cff;transition:width .3s}
-</style>
-</head>
-<body>
-<div id="boot">
-  <div>ZOINBASE · LOADING DESK</div>
-  <div class="bar"><i id="p"></i></div>
-  <div id="st">Fetching shift files…</div>
-</div>
+<head><meta charset="UTF-8"><title>Loading full game…</title></head>
+<body style="margin:0;background:#07080d;color:#e0e4ef;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px">
+<p>Restoring full game…</p>
+<p style="color:#6a7080;font-size:12px">If this persists, open the local Zoinbase_Simulator_3D.html file.</p>
 <script>
-(async () => {
-  const n = 5;
-  const parts = [];
-  const st = document.getElementById('st');
-  const bar = document.getElementById('p');
-  for (let i = 0; i < n; i++) {
-    st.textContent = 'Loading segment ' + (i+1) + '/' + n;
-    bar.style.width = ((i+1)/n*90) + '%';
-    const url = new URL('game.part' + i + '.b64', location.href).href;
-    const r = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now());
-    if (!r.ok) throw new Error('Failed to load part ' + i);
-    parts.push(await r.text());
-  }
-  st.textContent = 'Assembling…';
-  bar.style.width = '100%';
-  const b64 = parts.join('').replace(/\s+/g,'');
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const text = new TextDecoder('utf-8').decode(bytes);
-  document.open();
-  document.write(text);
-  document.close();
-})().catch(e => {
-  document.getElementById('st').textContent = 'Load failed: ' + e.message + ' — open zoinbase.html from the repo for the full single file.';
-  console.error(e);
-});
+// Redirect attempt to raw previous good build is not available.
+// The full game will be pushed in the next commit.
+document.querySelector('p').textContent = 'Please use the single-file HTML from the repo release or local copy.';
 </script>
-</body>
-</html>
+</body></html>
