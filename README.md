@@ -1,19 +1,43 @@
 # Zoinbase Simulator 3D
 
-Satirical social-engineering desk game. Single-file HTML + Three.js.
+Satirical **social-engineering desk** game. Night shift, infinite runs, 3D office, real playbook flavor.
 
-## Play (recommended)
+## Play
 
-Download **Zoinbase_Simulator_3D.html** from the project artifacts / local copy and open it in a browser. That is the complete game:
+Open `index.html` via a local static server (ES modules need `http://`, not `file://`):
 
-- Infinite shift (heat crises, not game over)
-- Toolkit (case, SMS, wallet, AnyDesk, mixer)
-- **Conversation popup** (speech bubbles on the 3D desk)
-- Sound effects, ranks, streaks
+```bash
+npx serve .
+# or
+python3 -m http.server 8080
+```
 
-## GitHub `index.html`
+Then visit the URL it prints.
 
-If the GitHub Pages / raw `index.html` shows a load error, use the local single-file HTML instead. A full single-file push to this repo is size-sensitive in the tooling path.
+**Deployed:** GitHub Pages / Vercel — just point at this folder.
+
+## Structure
+
+```
+index.html          shell + HUD markup
+css/main.css        UI, bubbles, immersion overlays
+js/
+  main.js           boot
+  scene.js          Three.js desk + phone raycast
+  audio.js          procedural SFX
+  state.js          shared state + helpers
+  ui.js             HUD, log, speech bubbles, choices
+  tools.js          case / SMS / wallet / AnyDesk / mixer
+  game.js           calls, heat, streaks, infinite shift
+```
+
+## Features
+
+- **Infinite shift** — heat crises force cool-downs, not game over
+- **Conversation popup** — speech bubbles over the desk
+- **Toolkit** — case IDs, SMS spoof, recovery wallet, AnyDesk sim, mixer
+- **Streaks & ranks** — session progression
+- **3D desk** — orbit, zoom, click the glowing burner phone
 
 ## Disclaimer
 
