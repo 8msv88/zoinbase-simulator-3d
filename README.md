@@ -1,43 +1,44 @@
 # Zoinbase Simulator 3D
 
-Satirical **social-engineering desk** game. Night shift, infinite runs, 3D office, real playbook flavor.
+Satirical social-engineering desk game. Infinite night shift, 3D office, toolkit, conversation bubbles.
 
-## Play
+## Deploy on Vercel
 
-Open `index.html` via a local static server (ES modules need `http://`, not `file://`):
+1. Import **https://github.com/8msv88/zoinbase-simulator-3d** in the Vercel dashboard
+2. Framework: **Other** (static)
+3. Root directory: `.` (repo root)
+4. Deploy
+
+Or CLI:
 
 ```bash
-npx serve .
-# or
-python3 -m http.server 8080
+npx vercel --prod
 ```
 
-Then visit the URL it prints.
+## Local
 
-**Deployed:** GitHub Pages / Vercel — just point at this folder.
+```bash
+python3 -m http.server 8080
+# open http://localhost:8080
+```
+
+ES modules need `http://` (not `file://`).
 
 ## Structure
 
 ```
-index.html          shell + HUD markup
-css/main.css        UI, bubbles, immersion overlays
+index.html
+css/main.css
 js/
-  main.js           boot
-  scene.js          Three.js desk + phone raycast
-  audio.js          procedural SFX
-  state.js          shared state + helpers
-  ui.js             HUD, log, speech bubbles, choices
-  tools.js          case / SMS / wallet / AnyDesk / mixer
-  game.js           calls, heat, streaks, infinite shift
+  main.js     boot
+  scene.js    Three.js desk + phone
+  audio.js    SFX
+  state.js    shared state
+  ui.js       HUD + bubbles
+  tools.js    case / SMS / wallet / AnyDesk / mixer
+  game.js     calls, heat, infinite shift
+vercel.json
 ```
-
-## Features
-
-- **Infinite shift** — heat crises force cool-downs, not game over
-- **Conversation popup** — speech bubbles over the desk
-- **Toolkit** — case IDs, SMS spoof, recovery wallet, AnyDesk sim, mixer
-- **Streaks & ranks** — session progression
-- **3D desk** — orbit, zoom, click the glowing burner phone
 
 ## Disclaimer
 
