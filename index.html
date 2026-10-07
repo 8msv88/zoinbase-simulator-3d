@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Zoinbase Simulator 3D - satirical social engineering desk game">
 <title>Zoinbase Simulator 3D</title>
 <link rel="stylesheet" href="css/main.css">
 <script type="importmap">
@@ -12,7 +11,6 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="scanlines"></div>
 <div id="vignette"></div>
 
 <div id="hud" class="overlay hidden">
@@ -24,44 +22,42 @@
   <div class="panel stat"><div class="stat-label">Rank</div><div class="stat-val accent" id="s-rank">Rookie</div></div>
 </div>
 
-<div id="call-timer" class="overlay panel">CALL 00:00</div>
-<div id="call-banner" class="overlay panel"><span class="dot"></span><span id="call-banner-text">ON CALL</span></div>
+<div id="call-timer" class="overlay panel" style="top:10px;left:50%;transform:translateX(-50%);opacity:0;font-size:11px;padding:5px 12px">CALL 00:00</div>
+<style>#call-timer.on{opacity:1!important}</style>
 
 <div id="dossier" class="overlay panel">
   <div class="name" id="d-name">-</div>
   <div class="meta" id="d-meta">-</div>
-  <div class="row"><span class="dim">Case ID</span><span id="d-case">-</span></div>
-  <div class="row"><span class="dim">Account</span><span id="d-acct">•••• -</span></div>
+  <div class="row"><span class="dim">Case</span><span id="d-case">-</span></div>
+  <div class="row"><span class="dim">Account</span><span id="d-acct">-</span></div>
   <div class="row"><span class="dim">Balance</span><span class="good" id="d-bal">$0</span></div>
   <div class="row"><span class="dim">Last TX</span><span id="d-lasttx">-</span></div>
-  <div class="row"><span class="dim">Susceptibility</span><span id="d-vuln">-</span></div>
+  <div class="row"><span class="dim">Vuln</span><span id="d-vuln">-</span></div>
   <div class="vuln-track"><div class="vuln-fill" id="d-vuln-bar" style="width:0%"></div></div>
-  <div class="tag" id="d-flags"></div>
+  <div class="tag" id="d-flags" style="font-size:9px;color:var(--accent);margin-top:6px"></div>
 </div>
 
 <div id="tools" class="overlay panel">
-  <div style="font-size:10px;letter-spacing:1.5px;color:var(--dim);margin-bottom:8px">TOOLKIT</div>
-  <button class="tool-btn" data-tool="case"><span class="tlab">Case File</span><span class="tsub">Ticket + spoof data</span></button>
-  <button class="tool-btn" data-tool="sms"><span class="tlab">SMS Spoof</span><span class="tsub">Send fake alert text</span></button>
-  <button class="tool-btn" data-tool="wallet"><span class="tlab">Wallet Gen</span><span class="tsub">Seed / recovery address</span></button>
-  <button class="tool-btn" data-tool="remote"><span class="tlab">Remote Session</span><span class="tsub">AnyDesk simulator</span></button>
-  <button class="tool-btn" data-tool="mixer"><span class="tlab">Mixer</span><span class="tsub">Route & cash status</span></button>
+  <div style="font-size:9px;letter-spacing:1.2px;color:var(--dim);margin-bottom:6px">TOOLKIT</div>
+  <button class="tool-btn" data-tool="case"><span class="tlab">Case File</span><span class="tsub">Ticket + spoof ID</span></button>
+  <button class="tool-btn" data-tool="sms"><span class="tlab">SMS Spoof</span><span class="tsub">Panic text</span></button>
+  <button class="tool-btn" data-tool="wallet"><span class="tlab">Wallet Gen</span><span class="tsub">Recovery seed</span></button>
+  <button class="tool-btn" data-tool="remote"><span class="tlab">Remote</span><span class="tsub">AnyDesk sim</span></button>
+  <button class="tool-btn" data-tool="mixer"><span class="tlab">Mixer</span><span class="tsub">Cash status</span></button>
 </div>
 
-<div id="log" class="overlay panel"></div>
-<div id="convo" class="overlay"></div>
 <div id="choices" class="overlay"></div>
 <div id="hint" class="overlay panel"></div>
-<div id="status" class="overlay panel dim">Drag orbit | Scroll zoom | Click phone to dial</div>
+<div id="status" class="overlay panel dim">Drag orbit | Scroll zoom | Click phone | Watch the monitor</div>
 
 <div id="start-modal" class="modal-bg">
   <div class="modal">
     <h1>ZOINBASE SIMULATOR</h1>
-    <div class="tagline">Night shift | Social engineering desk</div>
+    <div class="tagline">Night shift - Dialogue lives on the monitor</div>
     <div class="body">
-      Infinite night shift. Real playbook: urgency, case IDs, SMS spoofs, recovery wallets, AnyDesk walks.<br><br>
-      Heat maxing forces a cool-down - not game over. Park cash to bleed heat. Build streaks. Rank up across the session.<br><br>
-      Click the glowing phone. Use the toolkit. Never clock out if you don't want to.
+      You sit at a desk. The <b>computer screen</b> is your call console.<br><br>
+      Click the glowing phone to dial. Conversation appears on the monitor - bubbles, case IDs, transfers.<br><br>
+      Heat crises force cool-downs, not game over. Park cash. Build streaks.
     </div>
     <button class="btn-primary" id="btn-start">START SHIFT</button>
     <div class="disclaimer">Satire. The real thing ruins lives. Don't.</div>
@@ -70,23 +66,14 @@
 
 <div id="end-modal" class="modal-bg hidden">
   <div class="modal">
-    <div class="end-icon" id="e-icon">📊</div>
-    <div class="end-label" id="e-label">Shift Snapshot</div>
-    <div class="end-title" id="e-title">Stats</div>
-    <div class="body" id="e-body" style="text-align:center"></div>
-    <div class="end-stats">
-      <div class="end-stat"><div class="el">Balance</div><div class="ev accent" id="e-bal">$0</div></div>
-      <div class="end-stat"><div class="el">Marks</div><div class="ev" id="e-marks">0</div></div>
-      <div class="end-stat"><div class="el">Heat</div><div class="ev bad" id="e-heat">0</div></div>
-      <div class="end-stat"><div class="el">Rank</div><div class="ev warn" id="e-rank">-</div></div>
-    </div>
+    <div id="e-title" style="font-size:20px;font-weight:700;margin-bottom:8px">Stats</div>
+    <div class="body" id="e-body"></div>
     <button class="btn-primary" id="btn-again">BACK TO DESK</button>
     <button class="btn-secondary" id="btn-menu">NEW SHIFT</button>
   </div>
 </div>
 
 <div id="tool-modal" class="tool-modal hidden"></div>
-
 <script type="module" src="js/main.js"></script>
 </body>
 </html>
