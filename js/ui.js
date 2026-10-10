@@ -1,6 +1,8 @@
-import { $, S, rankName, fmt$ } from './state.js';
+import { $, S, rankName, fmt$, ACHIEVEMENTS } from './state.js';
 import { sfx } from './audio.js';
-import { monitorPush } from './monitor.js';
+import { monitorPush, setMonitorStats } from './monitor.js';
+
+let choiceFns = [];
 
 export function updateHUD() {
   $('s-bal').textContent = fmt$(S.balance);
@@ -11,6 +13,19 @@ export function updateHUD() {
   $('bar-susp').style.width = Math.min(100, S.susp) + '%';
   const sk = $('s-streak'); if (sk) sk.textContent = S.streak;
   const rk = $('s-rank'); if (rk) rk.textContent = rankName();
+  const xp = $('s-xp'); if (xp) xp.textContent = S.xp || 0;
+  setMonitorStats({ bal: S.balance, heat: S.heat, streak: S.streak });
+  updateNightClock();
+  const ap = $('ach-panel');
+  if (ap) ap.textContent = (S.achievements?.length || 0) + '/' + Object.keys(ACHIEVEMENTS).length + ' achievements';
+}
+
+export function updateNightClock() {
+  const el = $('night-clock');
+  if (!el) return;
+  const h = String(S.nightHour).padStart(2,'0');
+  const m = String(S.nightMin).padStart(2,'0');
+  el.textContent = 'NIGHT SHIFT  ' + h + ':' + m;
 }
 
 export function showDossier(t) {
@@ -22,11 +37,14 @@ export function showDossier(t) {
   $('d-lasttx').textContent = t.lastTx;
   $('d-vuln').textContent = t.vuln + '%';
   $('d-vuln-bar').style.width = t.vuln + '%';
+  const pt = $('d-ptype');
+  if (pt) pt.textContent = t.personality?.label || '';
   const flags = [];
   if (t.vuln > 70) flags.push('HIGH TRUST');
   if (S.smsSent) flags.push('SMS');
   if (S.walletReady) flags.push('WALLET');
   if (S.remoteReady) flags.push('REMOTE');
+  if (t.personality?.tag) flags.push(t.personality.tag);
   $('d-flags').textContent = flags.join(' | ');
   $('dossier').classList.add('show');
 }
@@ -45,18 +63,28 @@ export function log(msg, cls) {
   monitorPush(who, msg, kind);
 }
 
-export function clearConvo() {}
-export function clearChoices() { $('choices').innerHTML = ''; }
+export function clearChoices() { $('choices').innerHTML = ''; choiceFns = []; }
 export function showChoices(opts) {
   clearChoices();
-  opts.forEach(o => {
+  choiceFns = opts.map(o => o.fn);
+  opts.forEach((o, i) => {
     const b = document.createElement('button');
     b.className = 'choice-btn' + (o.danger ? ' danger' : '') + (o.safe ? ' safe' : '');
-    b.innerHTML = '<span class="lbl">' + o.label + '</span><span class="tag">' + (o.tag||'') + '</span>';
+    const key = (i < 9) ? String(i + 1) : '';
+    b.innerHTML = (key ? '<span class="key">' + key + '</span>' : '') +
+      '<span><span class="lbl">' + o.label + '</span><span class="tag">' + (o.tag||'') + '</span></span>';
     b.addEventListener('mouseenter', () => sfx('hover'));
     b.addEventListener('click', () => { sfx('click'); clearChoices(); o.fn(); });
     $('choices').appendChild(b);
   });
+}
+export function pickChoice(n) {
+  if (n >= 0 && n < choiceFns.length) {
+    const fn = choiceFns[n];
+    clearChoices();
+    sfx('click');
+    fn();
+  }
 }
 export function hint(msg, ms=3500) {
   const h = $('hint'); h.textContent = msg; h.classList.add('show');
@@ -64,3 +92,21 @@ export function hint(msg, ms=3500) {
 }
 export function showTools(on) { $('tools').classList.toggle('show', !!on); }
 export function setCallBanner() {}
+
+export function toast(title, body) {
+  const box = $('toast');
+  if (!box) return;
+  const el = document.createElement('div');
+  el.className = 'toast-item';
+  el.innerHTML = '<div class="tt">' + title + '</div><div>' + body + '</div>';
+  box.appendChild(el);
+  sfx('achieve');
+  setTimeout(() => el.remove(), 3200);
+}
+
+export function shake() {
+  document.body.classList.remove('shake');
+  void document.body.offsetWidth;
+  document.body.classList.add('shake');
+  setTimeout(() => document.body.classList.remove('shake'), 500);
+}
