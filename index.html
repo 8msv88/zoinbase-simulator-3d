@@ -12,6 +12,7 @@
 <body>
 <canvas id="c"></canvas>
 <div id="vignette"></div>
+<div id="scanlines"></div>
 
 <div id="hud" class="overlay hidden">
   <div class="panel stat"><div class="stat-label">Balance</div><div class="stat-val accent" id="s-bal">$0</div></div>
@@ -20,14 +21,17 @@
   <div class="panel stat"><div class="stat-label">Suspicion</div><div class="stat-val warn" id="s-susp">0</div><div class="bar-track"><div class="bar-fill bar-susp" id="bar-susp" style="width:0%"></div></div></div>
   <div class="panel stat"><div class="stat-label">Streak</div><div class="stat-val" id="s-streak">0</div></div>
   <div class="panel stat"><div class="stat-label">Rank</div><div class="stat-val accent" id="s-rank">Rookie</div></div>
+  <div class="panel stat"><div class="stat-label">XP</div><div class="stat-val" id="s-xp">0</div></div>
 </div>
 
-<div id="call-timer" class="overlay panel" style="top:10px;left:50%;transform:translateX(-50%);opacity:0;font-size:11px;padding:5px 12px">CALL 00:00</div>
-<style>#call-timer.on{opacity:1!important}</style>
+<div id="night-clock" class="overlay panel">NIGHT SHIFT  22:00</div>
+<div id="call-timer" class="overlay panel">CALL 00:00</div>
+<div id="toast" class="overlay"></div>
 
 <div id="dossier" class="overlay panel">
   <div class="name" id="d-name">-</div>
   <div class="meta" id="d-meta">-</div>
+  <div class="ptype" id="d-ptype"></div>
   <div class="row"><span class="dim">Case</span><span id="d-case">-</span></div>
   <div class="row"><span class="dim">Account</span><span id="d-acct">-</span></div>
   <div class="row"><span class="dim">Balance</span><span class="good" id="d-bal">$0</span></div>
@@ -43,23 +47,24 @@
   <button class="tool-btn" data-tool="sms"><span class="tlab">SMS Spoof</span><span class="tsub">Panic text</span></button>
   <button class="tool-btn" data-tool="wallet"><span class="tlab">Wallet Gen</span><span class="tsub">Recovery seed</span></button>
   <button class="tool-btn" data-tool="remote"><span class="tlab">Remote</span><span class="tsub">AnyDesk sim</span></button>
-  <button class="tool-btn" data-tool="mixer"><span class="tlab">Mixer</span><span class="tsub">Cash status</span></button>
+  <button class="tool-btn" data-tool="mixer"><span class="tlab">Mixer</span><span class="tsub">Cash + XP</span></button>
 </div>
 
 <div id="choices" class="overlay"></div>
 <div id="hint" class="overlay panel"></div>
-<div id="status" class="overlay panel dim">Drag orbit | Scroll zoom | Click phone | Watch the monitor</div>
+<div id="ach-panel" class="overlay panel">0/10 achievements</div>
+<div id="status" class="overlay panel dim">Drag orbit · Scroll zoom · Click phone · Keys 1-3</div>
 
 <div id="start-modal" class="modal-bg">
   <div class="modal">
     <h1>ZOINBASE SIMULATOR</h1>
-    <div class="tagline">Night shift - Dialogue lives on the monitor</div>
+    <div class="tagline">Night shift · Dialogue on the monitor · Infinite desk</div>
     <div class="body">
-      You sit at a desk. The <b>computer screen</b> is your call console.<br><br>
-      Click the glowing phone to dial. Conversation appears on the monitor - bubbles, case IDs, transfers.<br><br>
-      Heat crises force cool-downs, not game over. Park cash. Build streaks.
+      Conversation types out on the <b>3D monitor</b>. Targets have personalities — trusting, paranoid, technical, busy.<br><br>
+      Use the toolkit mid-call. Park cash to bleed heat. Survive crises. Unlock achievements. Progress saves automatically.
     </div>
     <button class="btn-primary" id="btn-start">START SHIFT</button>
+    <button class="btn-secondary hidden" id="btn-resume">RESUME SAVE</button>
     <div class="disclaimer">Satire. The real thing ruins lives. Don't.</div>
   </div>
 </div>
