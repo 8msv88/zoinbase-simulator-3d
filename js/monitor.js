@@ -1,4 +1,3 @@
-// Live canvas texture drawn onto the 3D monitor screen
 const W = 640, H = 400;
 const canvas = document.createElement('canvas');
 canvas.width = W; canvas.height = H;
@@ -6,18 +5,27 @@ const ctx = canvas.getContext('2d');
 
 let lines = [];
 let mode = 'idle';
-let callName = '';
-let callTimer = '00:00';
-let caseLabel = '';
-let blink = 0;
-let texture = null;
+let callName = '', callTimer = '00:00', caseLabel = '';
+let blink = 0, texture = null;
+let typing = null;
+let stats = { bal: 0, heat: 0, streak: 0 };
 
 export function getMonitorCanvas() { return canvas; }
 export function setMonitorTexture(tex) { texture = tex; paint(); }
-export function monitorIdle() { mode = 'idle'; lines = []; callName = ''; caseLabel = ''; paint(); }
-export function monitorDialing() { mode = 'dialing'; lines = []; paint(); }
-export function monitorStartCall(name, caseId) { mode = 'call'; callName = name; caseLabel = caseId || ''; lines = []; paint(); }
-export function monitorEndCall() { mode = 'idle'; callName = ''; paint(); }
+export function setMonitorStats(s) { stats = s; if (mode === 'idle' || mode === 'call') paint(); }
+
+export function monitorIdle() {
+  mode = 'idle'; lines = []; callName = ''; caseLabel = ''; typing = null; paint();
+}
+export function monitorDialing() {
+  mode = 'dialing'; lines = []; typing = null; paint();
+}
+export function monitorStartCall(name, caseId) {
+  mode = 'call'; callName = name; caseLabel = caseId || ''; lines = []; typing = null; paint();
+}
+export function monitorEndCall() { mode = 'idle'; callName = ''; typing = null; paint(); }
+export function monitorSetTimer(str) { callTimer = str; if (mode === 'call') paint(); }
+
 export function monitorPush(who, text, kind) {
   let color = '#8a90a0';
   if (kind === 'you' || who === 'You') color = '#7eb0ff';
@@ -25,11 +33,29 @@ export function monitorPush(who, text, kind) {
   else if (kind === 'good') color = '#3ddc84';
   else if (kind === 'bad') color = '#ff6b7a';
   else if (kind === 'sys') color = '#6a7080';
-  lines.push({ who: who || '', text: String(text), color });
-  while (lines.length > 14) lines.shift();
-  paint();
+  if ((kind === 'you' || kind === 'target') && text.length > 8) {
+    typing = { who: who || '', full: String(text), shown: '', color, kind };
+    typeTick();
+  } else {
+    lines.push({ who: who || '', text: String(text), color });
+    while (lines.length > 12) lines.shift();
+    paint();
+  }
 }
-export function monitorSetTimer(str) { callTimer = str; if (mode === 'call') paint(); }
+
+function typeTick() {
+  if (!typing) return;
+  if (typing.shown.length < typing.full.length) {
+    typing.shown += typing.full[typing.shown.length];
+    paint();
+    setTimeout(typeTick, 12 + Math.random() * 18);
+  } else {
+    lines.push({ who: typing.who, text: typing.full, color: typing.color });
+    while (lines.length > 12) lines.shift();
+    typing = null;
+    paint();
+  }
+}
 
 function roundRect(x, y, w, h, r) {
   ctx.beginPath();
@@ -65,19 +91,22 @@ function paintIdle() {
   ctx.fillText('ZOINBASE  |  SUPPORT CONSOLE', 16, 23);
   ctx.fillStyle = '#3ddc84'; ctx.font = '11px Courier New, monospace';
   ctx.fillText('RELAY ONLINE', W - 120, 23);
-  const cx = 80, cy = 80, cw = W - 160, ch = 220;
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 36, W, 28);
+  ctx.fillStyle = '#6a7080'; ctx.font = '10px Courier New, monospace';
+  ctx.fillText('BAL $' + Math.floor(stats.bal||0).toLocaleString() + '   HEAT ' + Math.floor(stats.heat||0) + '%   STREAK ' + (stats.streak||0), 16, 54);
+  const cx = 60, cy = 90, cw = W - 120, ch = 200;
   ctx.fillStyle = 'rgba(8,14,24,0.85)'; roundRect(cx, cy, cw, ch, 8); ctx.fill();
   ctx.strokeStyle = 'rgba(79,140,255,0.25)'; ctx.lineWidth = 1; roundRect(cx, cy, cw, ch, 8); ctx.stroke();
   ctx.fillStyle = '#4f8cff'; ctx.font = 'bold 16px Courier New, monospace';
-  ctx.fillText('> AWAITING DIAL', cx + 24, cy + 48);
+  ctx.fillText('> AWAITING DIAL', cx + 24, cy + 40);
   ctx.fillStyle = '#8a90a0'; ctx.font = '12px Courier New, monospace';
-  ctx.fillText('Click the burner phone on the desk to dial.', cx + 24, cy + 80);
-  ctx.fillText('Conversation appears here on the monitor.', cx + 24, cy + 102);
-  ctx.fillText('Use the toolkit during live calls.', cx + 24, cy + 124);
+  ctx.fillText('Click the burner phone to dial next mark.', cx + 24, cy + 72);
+  ctx.fillText('Dialogue types out on this screen.', cx + 24, cy + 94);
+  ctx.fillText('Keys 1-3 select dialogue choices.', cx + 24, cy + 116);
   ctx.fillStyle = '#3a4050'; ctx.font = '11px Courier New, monospace';
-  ctx.fillText('VoIP encrypted  |  Spoof portal ready', cx + 24, cy + 170);
+  ctx.fillText('VoIP encrypted  |  Spoof portal ready', cx + 24, cy + 160);
   blink = (blink + 1) % 60;
-  if (blink < 30) { ctx.fillStyle = '#4f8cff'; ctx.fillRect(cx + 24, cy + 190, 10, 14); }
+  if (blink < 30) { ctx.fillStyle = '#4f8cff'; ctx.fillRect(cx + 24, cy + 175, 10, 14); }
 }
 
 function paintDialing() {
@@ -103,7 +132,9 @@ function paintCall() {
   const top = 56, bottom = H - 28;
   let y = top + 8;
   const maxW = W - 48;
-  for (const ln of lines) {
+  const drawList = lines.slice();
+  if (typing) drawList.push({ who: typing.who, text: typing.shown + (blink < 30 ? '|' : ''), color: typing.color });
+  for (const ln of drawList) {
     const isYou = ln.who === 'You' || ln.color === '#7eb0ff';
     const isSys = !ln.who;
     ctx.font = '12px Courier New, monospace';
@@ -139,8 +170,8 @@ function paintCall() {
   }
   ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(0, H - 24, W, 24);
   ctx.fillStyle = '#3a4050'; ctx.font = '10px Courier New, monospace';
-  ctx.fillText('Encrypted channel  |  Do not share seed phrases on unsecured lines', 12, H - 8);
+  ctx.fillText('Encrypted  |  Keys 1-3 choose lines  |  Heat ' + Math.floor(stats.heat||0) + '%', 12, H - 8);
 }
 
-setInterval(() => { if (mode === 'idle') paint(); }, 500);
+setInterval(() => { blink = (blink + 1) % 60; if (mode === 'idle' || typing) paint(); }, 400);
 paint();
