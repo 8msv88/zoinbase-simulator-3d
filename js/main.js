@@ -8,3 +8,10 @@ initScene(canvas, onDialPhone);
 bindTools();
 bindModals();
 monitorIdle();
+
+try {
+  if (localStorage.getItem('zoinbase_v2')) {
+    const b = document.getElementById('btn-resume');
+    if (b) b.classList.remove('hidden');
+  }
+} catch(e) {}

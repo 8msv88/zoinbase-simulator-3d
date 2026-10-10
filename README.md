@@ -1,26 +1,25 @@
 # Zoinbase Simulator 3D
 
-Satirical social-engineering desk game. **Call dialogue renders on the 3D monitor screen.**
+Satirical social-engineering desk game. Call dialogue **types out on the 3D monitor**.
 
-## Play
+## Features
+- Live canvas texture on the monitor (chat bubbles, typing effect)
+- Target personalities (trusting, paranoid, technical, busy, elderly, skeptical)
+- Toolkit: case file, SMS spoof, wallet gen, AnyDesk, mixer
+- Infinite shift with heat crises
+- Achievements, XP, rank, night-clock progression
+- localStorage save / resume
+- Keyboard shortcuts 1-3 for dialogue choices
+- Ambient room hum + procedural SFX
 
+## Run
 ```bash
 python3 -m http.server 8080
 ```
+Open http://localhost:8080
 
-Open http://localhost:8080 — click the phone, watch the monitor.
-
-## Deploy (Vercel)
-
-Import this repo → Framework: Other → Deploy.
-
-## Structure
-
-- `js/monitor.js` — canvas texture painted onto the monitor (chat UI)
-- `js/scene.js` — Three.js desk + phone raycast
-- `js/game.js` — infinite shift, heat, dialogue
-- `js/tools.js` — case / SMS / wallet / AnyDesk / mixer
+## Deploy
+Import this repo on Vercel - Framework: Other - Deploy.
 
 ## Disclaimer
-
 Satire. The real thing ruins lives. Don't.
